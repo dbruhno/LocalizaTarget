@@ -40,6 +40,12 @@ def parse(link):
 			if "=" not in i:
 				continue
 			parts = i.split('=')
+			key = parts[0]
+			if "//" in key:
+				continue
+			key = key.split('=')[0]
+			val = parts[-1]
+			val = val.split('=')[-1]
 			items[parts[0]] = parts[-1]
 	return items
 
@@ -48,7 +54,7 @@ def getDiff(items1, items2):
 	for k in items1.keys(): 
 		if k not in items2:
 			if "Photo Lab" in items1[k] and "//" not in k:
-				print("Warning:"+k)
+				print(k)
 			else:
 				diffs[k] = items1[k]
 	return diffs
@@ -56,7 +62,7 @@ def getDiff(items1, items2):
 def serialize(diff):
 	text = ""
 	for k in diff.keys():
-		line = k + " = " + diff[k]
+		line = k + "=" + diff[k]
 		text += line
 		text += '\n'
 	return text
