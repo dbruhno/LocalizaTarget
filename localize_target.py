@@ -5,7 +5,7 @@ def getPathPl():
 	return "iosPhotoLab/Localization free/"
 
 def getPathVs():
-	return "iosPhotoLab/Resources-visagelab/Localization/"
+	return "iosPhotoLab/Resources-visagepro/Localization/"
 
 
 def getContentForPath(path):
@@ -29,6 +29,15 @@ def verify(item, list):
 			break
 	return res
 			
+def parseLine(line):
+	if "=" not in line:
+		return None
+	parts = line.split('=')
+	key = parts[0]
+	if "//" in key:
+		return None
+	val = parts[-1]
+	return [key, val]
 
 def parse(link):
 	items = {}
@@ -37,16 +46,10 @@ def parse(link):
 		str = fl.read()
 		lines = str.split('\n')
 		for i in lines:
-			if "=" not in i:
+			tup = parseLine(i)
+			if tup == None:
 				continue
-			parts = i.split('=')
-			key = parts[0]
-			if "//" in key:
-				continue
-			key = key.split('=')[0]
-			val = parts[-1]
-			val = val.split('=')[-1]
-			items[parts[0]] = parts[-1]
+			items[tup[0]] = tup[1]
 	return items
 
 def getDiff(items1, items2):
@@ -58,6 +61,54 @@ def getDiff(items1, items2):
 			else:
 				diffs[k] = items1[k]
 	return diffs
+
+def getLines(link):
+	path = link + "/Localizable.strings"
+	lines = []
+	with open(path, 'r') as fl:
+		str = fl.read()
+		lines = str.split('\n')
+	return lines
+
+def saveLines(lines, link):
+	str = ""
+	for line in lines:
+		str += line+"\n"
+	path = link + "/Localizable.strings"
+	with open(path,"w") as fl:
+		fl.write(str)
+
+def removeLineForKey(key, lines):
+	for i in lines:
+		tup = parseLine(i)
+		if tup == None:
+			continue
+		if tup[0] == key:
+			lines.remove(i)
+			break
+
+def updateLines(link1, link2):
+	lines = getLines(link1)
+	vsLines = getLines(link2)
+	keys = parse(link2)
+	out = []
+	for line in lines:
+		tup = parseLine(line)
+		if tup == None:
+			out.append(line)
+			if line in vsLines:
+				vsLines.remove(line)
+			continue
+		if tup[0] in keys.keys():
+			str = tup[0]+"="+keys[tup[0]]
+			removeLineForKey(tup[0], vsLines)
+			out.append(str)
+		else:
+			out.append(line)
+			if "Photo Lab" in line:
+				print(line)
+	out.extend(vsLines)
+	saveLines(out, link2)
 
 def serialize(diff):
 	text = ""
@@ -83,7 +134,7 @@ for link1 in plItems:
 	link2 = verify(link1, vsItems)
 	if link2 != None:
 		print("Verified:" + link1.split('/')[-1])
-		processLinks(link1, link2)
+		updateLines(link1, link2)
 	else:
 		print("No compare:" + link1.split('/')[-1])
 
